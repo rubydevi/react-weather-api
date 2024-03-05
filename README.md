@@ -1,10 +1,3 @@
-<div align="center">
- <img src="./public/app-logo.png" alt="logo" width="140"  height="auto" />
-  <br/>
-  <h1><b>JetLogix</b></h1>
-
-</div>
-
 <a name="readme-top"></a>
 
 <!-- TABLE OF CONTENTS -->
