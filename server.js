@@ -1,4 +1,5 @@
 const express = require('express');
+const cors = require('cors');
 const axios = require('axios');
 const http = require('http');
 // const socketIo = require('socket.io');
@@ -12,6 +13,9 @@ const API_KEY = 'aa62c144c2c8315e62c19addaf1979db';
 // const part = 'minutely,hourly,alerts';
 
 const PORT = process.env.PORT || 5000;
+
+// Middleware for enabling CORS
+app.use(cors());
 
 // Middleware for parsing JSON bodies
 app.use(express.json());
@@ -39,21 +43,22 @@ server.listen(PORT, () => {
 // Function to fetch weather data from API
 const getWeatherData = async (latitude, longitude) => {
   // API call
-  const response = await axios.get(`${baseUrl}lat=${latitude}&lon=${longitude}&appid=${API_KEY}`);
+  const response = await axios.get(`${baseUrl}lat=${latitude}&lon=${longitude}&appid=${API_KEY}&units=metric`);
   console.log('Fetching weather data for:', response.data);
   // return response.data;
   const weatherData = response.data;
 
   return {
     location: weatherData.name,
-    temperature: weatherData.main.temp,
+    temperature: Math.floor(weatherData.main.temp),
     conditions: weatherData.weather[0].main,
     sunrise: weatherData.sys.sunrise,
     sunset: weatherData.sys.sunset,
-    feelLike: weatherData.main.feels_like,
+    feelsLike: weatherData.main.feels_like,
     maxTemp: weatherData.main.temp_max,
     minTemp: weatherData.main.temp_min,
     pressure: weatherData.main.pressure,
-    humidity: weatherData.main.humidity
+    humidity: weatherData.main.humidity,
+    icons: weatherData.weather[0].icon
   };
 };
