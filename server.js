@@ -2,21 +2,28 @@ const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
 const http = require('http');
-// const socketIo = require('socket.io');
+const socketIo = require('socket.io');
 
 const app = express();
 const server = http.createServer(app);
-// const io = socketIo(server);
+const io = socketIo(server, {
+  cors: {
+    origin: ["http://localhost:3000"],
+    methods: ['POST']
+  }
+});
 
 const baseUrl = 'https://api.openweathermap.org/data/2.5/weather?';
 const API_KEY = 'aa62c144c2c8315e62c19addaf1979db';
-// const part = 'minutely,hourly,alerts';
-
 const PORT = process.env.PORT || 5000;
+
+let lat = 0.0;
+let lon = 0.0;
+
+const clients = [];
 
 // Middleware for enabling CORS
 app.use(cors());
-
 // Middleware for parsing JSON bodies
 app.use(express.json());
 
@@ -24,6 +31,8 @@ app.use(express.json());
 app.post('/api/weather', async (req, res) => {
   try {
     const { latitude, longitude } = req.body;
+    lat = latitude;
+    lon = longitude;
 
     // Call weather API using latitude and longitude
     const weatherData = await getWeatherData(latitude, longitude);
@@ -44,7 +53,7 @@ server.listen(PORT, () => {
 const getWeatherData = async (latitude, longitude) => {
   // API call
   const response = await axios.get(`${baseUrl}lat=${latitude}&lon=${longitude}&appid=${API_KEY}&units=metric`);
-  console.log('Fetching weather data for:', response.data);
+
   // return response.data;
   const weatherData = response.data;
 
@@ -62,3 +71,30 @@ const getWeatherData = async (latitude, longitude) => {
     icons: weatherData.weather[0].icon
   };
 };
+
+io.on('connection', (socket) => {
+  console.log('New client connected:', socket.id);
+  clients.push(socket);
+
+  socket.on('disconnect', () => {
+    console.log('Client disconnected:', socket.id);
+    const index = clients.indexOf(socket);
+    if (index !== -1) {
+      clients.splice(index, 1);
+    }
+  });
+});
+
+setInterval(async () => {
+  if (clients.length === 0) return; // No need to fetch weather data if no clients are connected
+
+  try {
+    const updatedWeatherData = await getWeatherData(lat, lon);
+
+    clients.forEach((socket) => {
+      socket.emit('weatherUpdate', updatedWeatherData);
+    });
+  } catch (error) {
+    console.error('Error updating weather data:', error);
+  }
+}, 30000);
